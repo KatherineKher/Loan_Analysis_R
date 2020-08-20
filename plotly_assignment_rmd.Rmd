@@ -1,0 +1,112 @@
+---
+title: "plotly_assignment"
+author: "KKher"
+date: "8/20/2020"
+output: slidy_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, error = FALSE, warning = FALSE)
+```
+
+## Assignemnt
+
+Create a web page presentation using R Markdown that features a plot created with Plotly.
+
+## Review criteria
+
+- Does the web page feature a date and is this date less than two months before the date that you're grading this assignment?
+- Is the web page a presentation and does it feature an interactive plot that appears to have been created with Plotly?
+
+## Data
+
+This data set contains 113,937 loans with 81 variables on each loan, including loan amount, borrower rate (or interest rate), current loan status, borrower income, and many others. Can be downloaded from [here](https://www.google.com/url?q=https://s3.amazonaws.com/udacity-hosted-downloads/ud651/prosperLoanData.csv&sa=D&ust=1597934539223000&usg=AOvVaw3ZwOgDxFdLU-Wa90hDVM4h)
+
+This [data dictionary](https://docs.google.com/spreadsheets/u/0/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit?usp=sharing) explains the variables in the data set.
+
+```{r data}
+library(plotly)
+library(tidyr)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+
+df = read.csv("prosperLoanData.csv")
+
+# convert ListingCreationDate from Factor to Date
+df$ListingCreationDate <- as.Date(df$ListingCreationDate, format = "%Y-%m-%d")
+
+# Drop unneeded Columns from df
+toKeep <- c("Term", "ListingCreationDate", "LoanStatus", "ListingKey", "BorrowerAPR", "BorrowerRate", "EstimatedLoss", "EstimatedReturn", "EmploymentStatus", "EmploymentStatusDuration", "ProsperScore","ListingCategory..numeric.", "BorrowerState", "OpenCreditLines", "IncomeRange", "IncomeVerifiable")
+
+df <- df[, toKeep]
+
+# Add year column
+df$Year <- year(df$ListingCreationDate)
+```
+
+```{r ListingCategoryModification}
+# Rename ListingCategory..numeric. to ListingCategory .. 
+# & replace the numeric values with their corresponding categorical values
+
+colnames(df)[12] <- "ListingCategory"
+
+df <- mutate(df, ListingCategory = ifelse(
+  ListingCategory==0, 'Not Avail', ifelse(
+    ListingCategory==1, 'Debt Consolidation', ifelse(
+      ListingCategory==2, 'Home Improvement', ifelse(
+        ListingCategory==3, 'Business', ifelse(
+          ListingCategory==4, 'Personal Loan', ifelse(
+            ListingCategory==5, 'Student Use', ifelse(
+              ListingCategory==6, 'Auto', ifelse(
+                ListingCategory==7,'Other' , ifelse(
+                  ListingCategory==8, 'Baby&Adoption', ifelse(
+                    ListingCategory==9, 'Boat', ifelse(
+                      ListingCategory==10, 'Cosmetic Procedure', ifelse(
+                        ListingCategory==11, 'Engagement Ring', ifelse(
+                          ListingCategory==12, 'Green Loans', ifelse(
+                            ListingCategory==13, 'Household Expenses', ifelse(
+                              ListingCategory==14, 'Large Purchases', ifelse(
+                                ListingCategory==15, 'Medical/Dental', ifelse(
+                                  ListingCategory==16, 'Motorcycle',ifelse(
+                                    ListingCategory==17, 'RV',ifelse(
+                                      ListingCategory==18, 'Taxes', ifelse(
+                                        ListingCategory==19, 'Vacation', ifelse(
+                                          ListingCategory==20, 'Wedding Loans', NA
+                                        )))))))))))))))))))))
+  )
+```
+
+## Number of Loans per State in 2005-2014
+
+```{r Loan_State}
+Loan_perYear_perState <- df %>%
+  group_by(Year, BorrowerState) %>%
+  summarize(LoanCount = n())
+
+g <- ggplot(Loan_perYear_perState, aes(BorrowerState, LoanCount)) + geom_col(aes(fill=Year))
+
+ggplotly(g)
+```
+
+## Percentage of Loans per ListingCategory in 2005-2014
+```{r Loan_Listing}
+Loan_perYear_perListing <- df %>%
+  group_by(Year, ListingCategory) %>%
+  summarize(LoanCount = n())
+
+g <- ggplot(Loan_perYear_perListing, aes(as.factor(Year), LoanCount)) + geom_col(aes(fill=ListingCategory), position = "dodge")
+
+ggplotly(g)
+```
+
+## Number of Loans per IncomeRange in 2005-2014
+```{r Loan_IncomeRange}
+Loan_perYear_perIncomeRange <- df %>%
+  group_by(Year, IncomeRange) %>%
+  summarize(LoanCount = n())
+
+g <- ggplot(Loan_perYear_perIncomeRange, aes(as.factor(Year) , LoanCount)) + geom_col(aes(fill=IncomeRange), position = "dodge")
+
+ggplotly(g)
+```
