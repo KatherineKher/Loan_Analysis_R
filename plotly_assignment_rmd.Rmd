@@ -6,23 +6,25 @@ output: slidy_presentation
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, error = FALSE, warning = FALSE)
+knitr::opts_chunk$set(echo = FALSE,out.width="80%", message = FALSE, error = FALSE, warning = FALSE)
 ```
 
 ## Assignemnt
 
 Create a web page presentation using R Markdown that features a plot created with Plotly.
 
-## Review criteria
+#### Review criteria
 
 - Does the web page feature a date and is this date less than two months before the date that you're grading this assignment?
 - Is the web page a presentation and does it feature an interactive plot that appears to have been created with Plotly?
 
-## Data
+#### Data
 
 This data set contains 113,937 loans with 81 variables on each loan, including loan amount, borrower rate (or interest rate), current loan status, borrower income, and many others. Can be downloaded from [here](https://www.google.com/url?q=https://s3.amazonaws.com/udacity-hosted-downloads/ud651/prosperLoanData.csv&sa=D&ust=1597934539223000&usg=AOvVaw3ZwOgDxFdLU-Wa90hDVM4h)
 
 This [data dictionary](https://docs.google.com/spreadsheets/u/0/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit?usp=sharing) explains the variables in the data set.
+
+**Plotly is an interactive plotting package, feel free to explore the graphs ;)**
 
 ```{r data}
 library(plotly)
@@ -77,36 +79,163 @@ df <- mutate(df, ListingCategory = ifelse(
   )
 ```
 
-## Number of Loans per State in 2005-2014
+## States Analysis
+From this graph we can see that entries for unidentified states ended in 2008. Moreover we notice huge spike in 2013 for almost all states.
 
 ```{r Loan_State}
 Loan_perYear_perState <- df %>%
   group_by(Year, BorrowerState) %>%
   summarize(LoanCount = n())
 
-g <- ggplot(Loan_perYear_perState, aes(BorrowerState, LoanCount)) + geom_col(aes(fill=Year))
+g <- ggplot(Loan_perYear_perState, aes(Year, LoanCount, colour=BorrowerState)) +
+  geom_line() + 
+  scale_x_continuous(breaks = seq(2005, 2014, by = 1)) +
+  ggtitle("Number of Loans per State in 2005-2014")
 
 ggplotly(g)
 ```
 
-## Percentage of Loans per ListingCategory in 2005-2014
+## States Analysis - cont'd
+This graph gives an insight on how in 2011, almost all states have close-range APRs, unlike prior to 2011, too many variabilities are found.
+
+```{r APR_State}
+mAPR_perYear_perState <- df %>%
+  group_by(Year, BorrowerState) %>%
+  summarize(APR_Mean = mean(BorrowerAPR, na.rm=T))
+
+g <- ggplot(mAPR_perYear_perState, aes(x=Year, y=APR_Mean, colour=BorrowerState)) +
+  geom_line() + 
+  scale_x_continuous(breaks = seq(2005, 2014, by = 1)) +
+  ggtitle("BorrowerAPR mean of Loans per State in 2005-2014")
+
+ggplotly(g)
+```
+
+
+## Listing Category Analysis
+By taking a closer look we can new listings were introduced after 2011.
+
 ```{r Loan_Listing}
 Loan_perYear_perListing <- df %>%
   group_by(Year, ListingCategory) %>%
   summarize(LoanCount = n())
 
-g <- ggplot(Loan_perYear_perListing, aes(as.factor(Year), LoanCount)) + geom_col(aes(fill=ListingCategory), position = "dodge")
+g <- ggplot(Loan_perYear_perListing, aes(Year, LoanCount, colour=ListingCategory)) +
+  geom_line() +
+  scale_x_continuous(breaks = seq(2005, 2014, by = 1)) + 
+  ggtitle("Number of Loans per ListingCategory in 2005-2014")
 
 ggplotly(g)
 ```
 
-## Number of Loans per IncomeRange in 2005-2014
+## Listing Category Analysis - cont'd
+This one is messy but insightful!  
+```{r APR_ListingCategory}
+mAPR_perYear_perListing <- df %>%
+  group_by(Year, ListingCategory) %>%
+  summarize(APR_Mean = mean(BorrowerAPR, na.rm=T))
+
+g <- ggplot(mAPR_perYear_perListing, aes(x=Year, y=APR_Mean, colour=ListingCategory)) +
+  geom_line() + 
+  scale_x_continuous(breaks = seq(2005, 2014, by = 1)) +
+  ggtitle("BorrowerAPR mean of Loans per ListingCategory in 2005-2014")
+
+ggplotly(g)
+```
+
+## Income Range Analysis
+Further data are definitely needed to understand this spike in loans in 2013, also noticeable here when certain categories ended!
 ```{r Loan_IncomeRange}
 Loan_perYear_perIncomeRange <- df %>%
   group_by(Year, IncomeRange) %>%
   summarize(LoanCount = n())
 
-g <- ggplot(Loan_perYear_perIncomeRange, aes(as.factor(Year) , LoanCount)) + geom_col(aes(fill=IncomeRange), position = "dodge")
+g <- ggplot(Loan_perYear_perIncomeRange, aes(Year , LoanCount, colour=IncomeRange)) +
+  geom_line() + 
+  scale_x_continuous(breaks = seq(2005, 2014, by = 1)) +
+  ggtitle("Number of Loans per IncomeRange in 2005-2014")
 
 ggplotly(g)
 ```
+
+## Income Range Analysis - cont'd
+Despite the fact that (Not Displayed) had entries in 2005, there is no APR data for that period.
+```{r APR_Income}
+mAPR_perYear_perIncomeRange <- df %>%
+  group_by(Year, IncomeRange) %>%
+  summarize(APR_Mean = mean(BorrowerAPR, na.rm=T))
+
+g <- ggplot(mAPR_perYear_perIncomeRange, aes(x= Year, y=APR_Mean, colour=IncomeRange)) + 
+  geom_line() + 
+  scale_x_continuous(breaks = seq(2005, 2014, by = 1)) +
+  ggtitle("BorrowerAPR mean of Loans per IncomeRange in 2005-2014")
+
+ggplotly(g)
+```
+
+## EstimatedLoss vs. BorrowerAPR
+Inerestingly, there is no data for some years above certain thershold!
+``` {r EstimatedLoss_APR}
+mAPR_EstimatedLoss <- df %>%
+  group_by(Year, EstimatedLoss) %>%
+  summarize(APR_Mean = mean(BorrowerAPR, na.rm=T))
+
+g <- ggplot(mAPR_EstimatedLoss, aes(x= EstimatedLoss, y=APR_Mean, colour=as.factor(Year))) + 
+  geom_line() +
+  ggtitle("APR Mean per Estimated Loss in 2005-2014")
+
+ggplotly(g)
+```
+
+## EstimatedLoss vs. BorrowerAPR - cont'd
+Further breakdown of the previous graph per status. (Plotting top 5 LoanStatuses)
+``` {r EstimatedLoss_APR_Status}
+mAPR_EstimatedLoss_Status <- df %>%
+  group_by(Year, EstimatedLoss, LoanStatus) %>%
+  summarize(APR_Mean = mean(BorrowerAPR, na.rm=T))
+
+mAPR_EstimatedLoss_Status <- mAPR_EstimatedLoss_Status %>%
+  filter( LoanStatus == 'Completed' |  LoanStatus == 'Current' | LoanStatus == 'Defaulted' | LoanStatus == 'Chargedoff' | LoanStatus == 'Past Due (1-15 days)')
+
+g <- ggplot(mAPR_EstimatedLoss_Status, aes(x= EstimatedLoss, y=APR_Mean, colour=as.factor(Year))) + 
+  geom_point(alpha = 0.3) +
+  facet_wrap(.~LoanStatus, ncol = 3) +
+  ggtitle("Estimated Loss and APR per Loan Status in 2005-2014")
+
+ggplotly(g)
+```
+
+## EstimatedReturn vs. BorrowerAPR
+Unlike EstimatedLoss, EstimatedReturn range is wider for some years, and have a steeper relation with APR.
+Double click on the year of interest to see its graph alone!
+``` {r EstimatedReturn_APR}
+mAPR_EstimatedReturn <- df %>%
+  group_by(Year, EstimatedReturn) %>%
+  summarize(APR_Mean = mean(BorrowerAPR, na.rm=T))
+
+g <- ggplot(mAPR_EstimatedReturn, aes(x=EstimatedReturn, y=APR_Mean, colour=as.factor(Year))) + 
+  geom_point(alpha = 0.3) +
+  ggtitle("APR Mean per Estimated Return in 2005-2014")
+
+ggplotly(g)
+```
+
+## EstimatedReturn vs. BorrowerAPR - cont'd
+Unlike EstimatedLoss, obvious variability existed across years, however it seems it was handled for current loans.
+``` {r EstimatedReturn_APR_Status}
+mAPR_EstimatedReturn_Status <- df %>%
+  group_by(Year, EstimatedReturn, LoanStatus) %>%
+  summarize(APR_Mean = mean(BorrowerAPR, na.rm=T))
+
+mAPR_EstimatedReturn_Status <- mAPR_EstimatedReturn_Status %>%
+  filter( LoanStatus == 'Completed' |  LoanStatus == 'Current' | LoanStatus == 'Defaulted' | LoanStatus == 'Chargedoff' | LoanStatus == 'Past Due (1-15 days)')
+
+g <- ggplot(mAPR_EstimatedReturn_Status, aes(x= EstimatedReturn, y=APR_Mean, colour=as.factor(Year))) + 
+  geom_point(alpha = 0.3) +
+  facet_wrap(.~LoanStatus, ncol = 3) +
+  ggtitle("Estimated Return and APR per Loan Status in 2005-2014")
+
+ggplotly(g)
+```
+
+## Thanks!
